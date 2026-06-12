@@ -15,8 +15,6 @@ interface NodeData {
   degree?: number;
   x?: number;
   y?: number;
-  fx?: number;
-  fy?: number;
 }
 
 interface EdgeData {
@@ -62,10 +60,24 @@ const Visualization: React.FC<VisualizationProps> = () => {
         const data = await graphApi.getGraph();
         setGraphData(data);
 
-        // Extract unique values for filters
-        const countries: string[] = [...new Set(data.nodes.map((n: NodeData) => n.country).filter(Boolean) as string[])].sort();
-        const clubs: string[] = [...new Set(data.edges.map((e: EdgeData) => e.club_name).filter(Boolean) as string[])].sort();
-        const seasons: string[] = [...new Set(data.edges.map((e: EdgeData) => e.season).filter(Boolean) as string[])].sort();
+        // Extract unique values for filters - use type assertions to handle undefined
+        const countrySet = new Set<string>();
+        data.nodes.forEach((n: NodeData) => {
+          if (n.country) countrySet.add(n.country);
+        });
+        const countries: string[] = Array.from(countrySet).sort();
+
+        const clubSet = new Set<string>();
+        data.edges.forEach((e: EdgeData) => {
+          if (e.club_name) clubSet.add(e.club_name);
+        });
+        const clubs: string[] = Array.from(clubSet).sort();
+
+        const seasonSet = new Set<string>();
+        data.edges.forEach((e: EdgeData) => {
+          if (e.season) seasonSet.add(e.season);
+        });
+        const seasons: string[] = Array.from(seasonSet).sort();
 
         setAvailableCountries(countries);
         setAvailableClubs(clubs);
@@ -138,7 +150,7 @@ const Visualization: React.FC<VisualizationProps> = () => {
   }, [graphData, selectedCountries, selectedClubs, selectedSeasons, minDegree, maxDegree]);
 
   // Create node canvas object for custom rendering
-  const nodeCanvasObject = (node: NodeData, ctx: CanvasRenderingContext2D, globalScale: number) => {
+  const nodeCanvasObject = (node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
     const label = showLabels ? node.name || '' : '';
     const fontSize = 12 / globalScale;
     const renderNodeSize = 8 * globalScale;
@@ -190,13 +202,8 @@ const Visualization: React.FC<VisualizationProps> = () => {
 
   // Create link canvas object for custom rendering
   const linkCanvasObject = (link: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
-    const sourceNode = filteredData.nodes.find(n => n.id === link.source);
-    const targetNode = filteredData.nodes.find(n => n.id === link.target);
-    
-    if (!sourceNode || !targetNode) return;
-
-    const start = { x: sourceNode.x || 0, y: sourceNode.y || 0 };
-    const end = { x: targetNode.x || 0, y: targetNode.y || 0 };
+    const start = { x: link.source?.x || 0, y: link.source?.y || 0 };
+    const end = { x: link.target?.x || 0, y: link.target?.y || 0 };
 
     // Draw line
     ctx.beginPath();
@@ -218,19 +225,19 @@ const Visualization: React.FC<VisualizationProps> = () => {
   };
 
   // Handle node click
-  const handleNodeClick = (node: NodeData) => {
+  const handleNodeClick = (node: any) => {
     setSelectedNode(selectedNode === node.id ? null : node.id);
   };
 
   // Handle node hover
-  const handleNodeHover = (node: NodeData | null) => {
+  const handleNodeHover = (node: any | null) => {
     setHoveredNode(node?.id || null);
   };
 
   // Center graph on selected node
   useEffect(() => {
     if (selectedNode && graphRef.current) {
-      const node = filteredData.nodes.find((n: NodeData) => n.id === selectedNode);
+      const node = filteredData.nodes.find((n: any) => n.id === selectedNode);
       if (node) {
         graphRef.current.centerAt(node.x || 0, node.y || 0, 1000);
       }
@@ -314,7 +321,7 @@ const Visualization: React.FC<VisualizationProps> = () => {
 
   // Prepare graph data for ForceGraph2D
   const forceGraphData = {
-    nodes: filteredData.nodes.map((n: NodeData) => ({
+    nodes: filteredData.nodes.map((n: any) => ({
       id: n.id,
       name: n.name,
       country: n.country,
@@ -322,7 +329,7 @@ const Visualization: React.FC<VisualizationProps> = () => {
       degree: n.degree,
       current_club_id: n.current_club_id
     })),
-    links: filteredData.edges.map((e: EdgeData) => ({
+    links: filteredData.edges.map((e: any) => ({
       source: e.source,
       target: e.target,
       club_id: e.club_id,
