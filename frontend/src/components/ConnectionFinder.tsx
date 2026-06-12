@@ -3,7 +3,7 @@ import { connectionApi, playersApi } from '../api';
 import type { Player, ConnectionResponse } from '../types';
 
 const ConnectionFinder: React.FC = () => {
-  const [players, setPlayers] = useState<Player[]>([]);
+  const [allPlayers, setAllPlayers] = useState<Player[]>([]);
   const [playerSearch1, setPlayerSearch1] = useState('');
   const [playerSearch2, setPlayerSearch2] = useState('');
   const [selectedPlayer1, setSelectedPlayer1] = useState<string | null>(null);
@@ -11,7 +11,6 @@ const ConnectionFinder: React.FC = () => {
   const [connection, setConnection] = useState<ConnectionResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [allPlayers, setAllPlayers] = useState<Player[]>([]);
 
   // Load all players on mount
   useEffect(() => {
@@ -20,7 +19,6 @@ const ConnectionFinder: React.FC = () => {
         setIsLoading(true);
         const data = await playersApi.list({ limit: 10000 });
         setAllPlayers(data);
-        setPlayers(data);
       } catch (err) {
         console.error('Error loading players:', err);
         setError('Failed to load players. Please check your connection.');
@@ -128,14 +126,14 @@ const ConnectionFinder: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Player 1 */}
           <div>
-            <label className="form-label">Player 1</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Player 1</label>
             <div className="relative">
               <input
                 type="text"
                 value={playerSearch1}
                 onChange={(e) => setPlayerSearch1(e.target.value)}
                 placeholder="Search for a player..."
-                className="form-input"
+                className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
               />
               {playerSearch1 && filteredPlayers1.length > 0 && (
                 <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded shadow-lg max-h-60 overflow-y-auto">
@@ -160,7 +158,7 @@ const ConnectionFinder: React.FC = () => {
             </div>
             {selectedPlayer1 && (
               <div className="mt-2">
-                <span className="badge badge-country">
+                <span className="inline-block px-3 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
                   {getPlayerName(selectedPlayer1)} ({getPlayerCountry(selectedPlayer1)})
                 </span>
               </div>
@@ -169,14 +167,14 @@ const ConnectionFinder: React.FC = () => {
 
           {/* Player 2 */}
           <div>
-            <label className="form-label">Player 2</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Player 2</label>
             <div className="relative">
               <input
                 type="text"
                 value={playerSearch2}
                 onChange={(e) => setPlayerSearch2(e.target.value)}
                 placeholder="Search for a player..."
-                className="form-input"
+                className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
               />
               {playerSearch2 && filteredPlayers2.length > 0 && (
                 <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded shadow-lg max-h-60 overflow-y-auto">
@@ -201,7 +199,7 @@ const ConnectionFinder: React.FC = () => {
             </div>
             {selectedPlayer2 && (
               <div className="mt-2">
-                <span className="badge badge-country">
+                <span className="inline-block px-3 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
                   {getPlayerName(selectedPlayer2)} ({getPlayerCountry(selectedPlayer2)})
                 </span>
               </div>
@@ -215,7 +213,7 @@ const ConnectionFinder: React.FC = () => {
             type="button"
             onClick={findConnection}
             disabled={isLoading || !selectedPlayer1 || !selectedPlayer2}
-            className="btn"
+            className="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:bg-blue-300"
           >
             {isLoading ? (
               <>
@@ -234,7 +232,7 @@ const ConnectionFinder: React.FC = () => {
             type="button"
             onClick={swapPlayers}
             disabled={!selectedPlayer1 || !selectedPlayer2}
-            className="btn-secondary"
+            className="px-4 py-2 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200 disabled:bg-gray-50"
           >
             Swap Players
           </button>
@@ -243,7 +241,7 @@ const ConnectionFinder: React.FC = () => {
             type="button"
             onClick={findRandomConnection}
             disabled={isLoading}
-            className="btn-secondary"
+            className="px-4 py-2 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200 disabled:bg-gray-50"
           >
             Random Connection
           </button>
@@ -306,21 +304,21 @@ const ConnectionFinder: React.FC = () => {
                 {/* Connection Path Visualization */}
                 <div className="mb-6">
                   <h3 className="text-sm font-semibold text-gray-700 mb-4">Connection Path</h3>
-                  <div className="connection-path">
+                  <div className="flex flex-wrap items-center justify-center gap-4">
                     {connection.path.map((playerId, index) => {
                       const player = connection.players.find(p => p.id === playerId);
                       return (
-                        <div key={playerId} className="connection-node">
+                        <div key={playerId} className="text-center">
                           <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center border-2 border-blue-300">
                             <span className="text-xs font-medium text-blue-800 text-center px-2">
                               {player?.name || playerId}
                             </span>
                           </div>
-                          <span className="text-xs text-gray-500 mt-1">
+                          <span className="text-xs text-gray-500 mt-1 block">
                             {player?.country || 'Unknown'}
                           </span>
                           {index < connection.path.length - 1 && (
-                            <span className="connection-arrow">→</span>
+                            <span className="mx-2 text-gray-400">→</span>
                           )}
                         </div>
                       );
@@ -434,7 +432,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, showIndex }) => {
             ID: {player.id}
           </p>
           <div className="mt-2">
-            <span className="badge badge-club">
+            <span className="inline-block px-2 py-1 bg-gray-200 text-gray-700 text-xs rounded">
               Current: {player.current_club_id || 'N/A'}
             </span>
           </div>

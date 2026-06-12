@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { teammatesApi, playersApi, clubsApi } from '../api';
-import type { TeammateResponse, Player, Club } from '../types';
+import { teammatesApi, clubsApi } from '../api';
+import { useNavigate } from 'react-router-dom';
+import type { TeammateResponse, Club } from '../types';
 
 const QueryBuilder: React.FC = () => {
   const [clubs, setClubs] = useState<Club[]>([]);
   const [selectedClub, setSelectedClub] = useState<string>('');
   const [selectedSeason, setSelectedSeason] = useState<string>('2023-24');
-  const [seasons, setSeasons] = useState<string[]>([]);
   const [results, setResults] = useState<TeammateResponse[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [clubSearch, setClubSearch] = useState('');
   const [availableSeasons, setAvailableSeasons] = useState<string[]>([]);
+
+  const navigate = useNavigate();
 
   // Load clubs and seasons on mount
   useEffect(() => {
@@ -281,12 +283,12 @@ const QueryBuilder: React.FC = () => {
                       {player.current_club_id || 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <a 
-                        href={`/players/${player.id}`} 
+                      <button 
+                        onClick={() => navigate(`/players/${player.id}`)} 
                         className="text-blue-600 hover:text-blue-900"
                       >
                         View Details
-                      </a>
+                      </button>
                     </td>
                   </tr>
                 ))}

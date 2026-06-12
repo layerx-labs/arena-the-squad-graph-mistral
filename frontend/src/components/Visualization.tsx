@@ -1,17 +1,43 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import ForceGraph2D from 'react-force-graph-2d';
-import { graphApi, playersApi, clubsApi } from '../api';
-import type { GraphData, GraphNode, GraphEdge, VisualizationFilter } from '../types';
+import { ForceGraph2D } from 'react-force-graph';
+import { graphApi, playersApi } from '../api';
 
 interface VisualizationProps {
-  initialFilters?: VisualizationFilter;
+  initialFilters?: any;
 }
 
-const Visualization: React.FC<VisualizationProps> = ({ initialFilters = {} }) => {
+interface NodeData {
+  id: string;
+  name: string;
+  country?: string;
+  position?: string;
+  current_club_id?: string;
+  degree?: number;
+  x?: number;
+  y?: number;
+  fx?: number;
+  fy?: number;
+}
+
+interface EdgeData {
+  source: string;
+  target: string;
+  club_id?: string;
+  club_name?: string;
+  season?: string;
+  club_country?: string;
+}
+
+interface GraphData {
+  nodes: NodeData[];
+  edges: EdgeData[];
+  stats: any;
+}
+
+const Visualization: React.FC<VisualizationProps> = () => {
   const [graphData, setGraphData] = useState<GraphData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<VisualizationFilter>(initialFilters);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
@@ -23,8 +49,6 @@ const Visualization: React.FC<VisualizationProps> = ({ initialFilters = {} }) =>
   const [availableClubs, setAvailableClubs] = useState<string[]>([]);
   const [availableSeasons, setAvailableSeasons] = useState<string[]>([]);
   const [showLabels, setShowLabels] = useState(false);
-  const [linkDistance, setLinkDistance] = useState(50);
-  const [nodeSize, setNodeSize] = useState(8);
 
   const graphRef = useRef<any>(null);
 
@@ -39,9 +63,9 @@ const Visualization: React.FC<VisualizationProps> = ({ initialFilters = {} }) =>
         setGraphData(data);
 
         // Extract unique values for filters
-        const countries = [...new Set(data.nodes.map(n => n.country).filter(Boolean))].sort();
-        const clubs = [...new Set(data.edges.map(e => e.club_name).filter(Boolean))].sort();
-        const seasons = [...new Set(data.edges.map(e => e.season).filter(Boolean))].sort();
+        const countries: string[] = [...new Set(data.nodes.map((n: NodeData) => n.country).filter(Boolean) as string[])].sort();
+        const clubs: string[] = [...new Set(data.edges.map((e: EdgeData) => e.club_name).filter(Boolean) as string[])].sort();
+        const seasons: string[] = [...new Set(data.edges.map((e: EdgeData) => e.season).filter(Boolean) as string[])].sort();
 
         setAvailableCountries(countries);
         setAvailableClubs(clubs);
@@ -60,18 +84,18 @@ const Visualization: React.FC<VisualizationProps> = ({ initialFilters = {} }) =>
 
   // Filter nodes and edges based on current filters
   const filteredData = useMemo(() => {
-    if (!graphData) return { nodes: [], edges: [] };
+    if (!graphData) return { nodes: [] as NodeData[], edges: [] as EdgeData[] };
 
-    let nodes = [...graphData.nodes];
-    let edges = [...graphData.edges];
+    let nodes: NodeData[] = [...graphData.nodes];
+    let edges: EdgeData[] = [...graphData.edges];
 
     // Filter by country
     if (selectedCountries.length > 0) {
       const selectedSet = new Set(selectedCountries);
       nodes = nodes.filter(n => n.country && selectedSet.has(n.country));
-      edges = edges.filter(e => {
-        const sourceNode = graphData.nodes.find(n => n.id === e.source);
-        const targetNode = graphData.nodes.find(n => n.id === e.target);
+      edges = edges.filter((e: EdgeData) => {
+        const sourceNode = graphData.nodes.find((n: NodeData) => n.id === e.source);
+        const targetNode = graphData.nodes.find((n: NodeData) => n.id === e.target);
         return (sourceNode?.country && selectedSet.has(sourceNode.country)) ||
                (targetNode?.country && selectedSet.has(targetNode.country));
       });
@@ -80,10 +104,10 @@ const Visualization: React.FC<VisualizationProps> = ({ initialFilters = {} }) =>
     // Filter by club
     if (selectedClubs.length > 0) {
       const selectedSet = new Set(selectedClubs);
-      edges = edges.filter(e => selectedSet.has(e.club_name));
+      edges = edges.filter((e: EdgeData) => e.club_name && selectedSet.has(e.club_name));
       // Keep nodes that appear in remaining edges
       const edgeNodeIds = new Set<string>();
-      edges.forEach(e => {
+      edges.forEach((e: EdgeData) => {
         edgeNodeIds.add(e.source);
         edgeNodeIds.add(e.target);
       });
@@ -93,10 +117,10 @@ const Visualization: React.FC<VisualizationProps> = ({ initialFilters = {} }) =>
     // Filter by season
     if (selectedSeasons.length > 0) {
       const selectedSet = new Set(selectedSeasons);
-      edges = edges.filter(e => selectedSet.has(e.season));
+      edges = edges.filter((e: EdgeData) => e.season && selectedSet.has(e.season));
       // Keep nodes that appear in remaining edges
       const edgeNodeIds = new Set<string>();
-      edges.forEach(e => {
+      edges.forEach((e: EdgeData) => {
         edgeNodeIds.add(e.source);
         edgeNodeIds.add(e.target);
       });
@@ -104,24 +128,24 @@ const Visualization: React.FC<VisualizationProps> = ({ initialFilters = {} }) =>
     }
 
     // Filter by degree
-    nodes = nodes.filter(n => n.degree >= minDegree && n.degree <= maxDegree);
+    nodes = nodes.filter((n: NodeData) => (n.degree || 0) >= minDegree && (n.degree || 0) <= maxDegree);
 
     // Remove edges that reference filtered-out nodes
     const validNodeIds = new Set(nodes.map(n => n.id));
-    edges = edges.filter(e => validNodeIds.has(e.source) && validNodeIds.has(e.target));
+    edges = edges.filter((e: EdgeData) => validNodeIds.has(e.source) && validNodeIds.has(e.target));
 
     return { nodes, edges };
   }, [graphData, selectedCountries, selectedClubs, selectedSeasons, minDegree, maxDegree]);
 
   // Create node canvas object for custom rendering
-  const nodeCanvasObject = (node: GraphNode, ctx: CanvasRenderingContext2D, globalScale: number) => {
-    const label = showLabels ? node.name : '';
+  const nodeCanvasObject = (node: NodeData, ctx: CanvasRenderingContext2D, globalScale: number) => {
+    const label = showLabels ? node.name || '' : '';
     const fontSize = 12 / globalScale;
-    const nodeSize = Math.max(4, this.nodeSize || 8) * globalScale;
+    const renderNodeSize = 8 * globalScale;
 
     // Draw circle
     ctx.beginPath();
-    ctx.arc(node.x || 0, node.y || 0, nodeSize / 2, 0, 2 * Math.PI, false);
+    ctx.arc(node.x || 0, node.y || 0, renderNodeSize / 2, 0, 2 * Math.PI, false);
     
     // Color by country
     const colors: Record<string, string> = {
@@ -160,14 +184,19 @@ const Visualization: React.FC<VisualizationProps> = ({ initialFilters = {} }) =>
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillStyle = '#fff';
-      ctx.fillText(label, (node.x || 0) + (nodeSize / 2 + 5), (node.y || 0) - (nodeSize / 2 + 5));
+      ctx.fillText(label, (node.x || 0) + (renderNodeSize / 2 + 5), (node.y || 0) - (renderNodeSize / 2 + 5));
     }
   };
 
   // Create link canvas object for custom rendering
-  const linkCanvasObject = (link: GraphEdge, ctx: CanvasRenderingContext2D, globalScale: number) => {
-    const start = { x: link.source.x || 0, y: link.source.y || 0 };
-    const end = { x: link.target.x || 0, y: link.target.y || 0 };
+  const linkCanvasObject = (link: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
+    const sourceNode = filteredData.nodes.find(n => n.id === link.source);
+    const targetNode = filteredData.nodes.find(n => n.id === link.target);
+    
+    if (!sourceNode || !targetNode) return;
+
+    const start = { x: sourceNode.x || 0, y: sourceNode.y || 0 };
+    const end = { x: targetNode.x || 0, y: targetNode.y || 0 };
 
     // Draw line
     ctx.beginPath();
@@ -183,25 +212,25 @@ const Visualization: React.FC<VisualizationProps> = ({ initialFilters = {} }) =>
       'Bayern Munich': '#fc0000',
     };
     
-    ctx.strokeStyle = clubColors[link.club_name] || '#9ca3af';
+    ctx.strokeStyle = clubColors[link.club_name || ''] || '#9ca3af';
     ctx.lineWidth = 0.5 / globalScale;
     ctx.stroke();
   };
 
   // Handle node click
-  const handleNodeClick = (node: GraphNode) => {
+  const handleNodeClick = (node: NodeData) => {
     setSelectedNode(selectedNode === node.id ? null : node.id);
   };
 
   // Handle node hover
-  const handleNodeHover = (node: GraphNode | null) => {
+  const handleNodeHover = (node: NodeData | null) => {
     setHoveredNode(node?.id || null);
   };
 
   // Center graph on selected node
   useEffect(() => {
     if (selectedNode && graphRef.current) {
-      const node = filteredData.nodes.find(n => n.id === selectedNode);
+      const node = filteredData.nodes.find((n: NodeData) => n.id === selectedNode);
       if (node) {
         graphRef.current.centerAt(node.x || 0, node.y || 0, 1000);
       }
@@ -242,6 +271,17 @@ const Visualization: React.FC<VisualizationProps> = ({ initialFilters = {} }) =>
     setHoveredNode(null);
   };
 
+  // Handle select changes with proper typing
+  const handleClubsChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selected: string[] = Array.from(e.target.selectedOptions, (option: HTMLOptionElement) => option.value);
+    setSelectedClubs(selected);
+  };
+
+  const handleSeasonsChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selected: string[] = Array.from(e.target.selectedOptions, (option: HTMLOptionElement) => option.value);
+    setSelectedSeasons(selected);
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -272,6 +312,26 @@ const Visualization: React.FC<VisualizationProps> = ({ initialFilters = {} }) =>
     return <div>No graph data available</div>;
   }
 
+  // Prepare graph data for ForceGraph2D
+  const forceGraphData = {
+    nodes: filteredData.nodes.map((n: NodeData) => ({
+      id: n.id,
+      name: n.name,
+      country: n.country,
+      position: n.position,
+      degree: n.degree,
+      current_club_id: n.current_club_id
+    })),
+    links: filteredData.edges.map((e: EdgeData) => ({
+      source: e.source,
+      target: e.target,
+      club_id: e.club_id,
+      club_name: e.club_name,
+      season: e.season,
+      club_country: e.club_country
+    }))
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -283,10 +343,10 @@ const Visualization: React.FC<VisualizationProps> = ({ initialFilters = {} }) =>
           </p>
         </div>
         <div className="flex space-x-2">
-          <button onClick={resetCamera} className="btn-secondary btn-sm">
+          <button onClick={resetCamera} className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-sm">
             Reset View
           </button>
-          <button onClick={zoomToFit} className="btn-secondary btn-sm">
+          <button onClick={zoomToFit} className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-sm">
             Zoom to Fit
           </button>
         </div>
@@ -299,7 +359,7 @@ const Visualization: React.FC<VisualizationProps> = ({ initialFilters = {} }) =>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Country Filter */}
           <div>
-            <label className="form-label">Country</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
             <div className="space-y-1 max-h-32 overflow-y-auto">
               <button 
                 onClick={toggleAllCountries}
@@ -329,15 +389,12 @@ const Visualization: React.FC<VisualizationProps> = ({ initialFilters = {} }) =>
 
           {/* Club Filter */}
           <div>
-            <label className="form-label">Club</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Club</label>
             <select
               multiple
               value={selectedClubs}
-              onChange={(e) => {
-                const selected = Array.from(e.target.selectedOptions, option => option.value);
-                setSelectedClubs(selected);
-              }}
-              className="form-select h-32"
+              onChange={handleClubsChange}
+              className="w-full h-32 border border-gray-300 rounded px-2 py-1 text-xs"
             >
               {availableClubs.slice(0, 50).map(club => (
                 <option key={club} value={club}>{club}</option>
@@ -347,15 +404,12 @@ const Visualization: React.FC<VisualizationProps> = ({ initialFilters = {} }) =>
 
           {/* Season Filter */}
           <div>
-            <label className="form-label">Season</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Season</label>
             <select
               multiple
               value={selectedSeasons}
-              onChange={(e) => {
-                const selected = Array.from(e.target.selectedOptions, option => option.value);
-                setSelectedSeasons(selected);
-              }}
-              className="form-select h-32"
+              onChange={handleSeasonsChange}
+              className="w-full h-32 border border-gray-300 rounded px-2 py-1 text-xs"
             >
               {availableSeasons.map(season => (
                 <option key={season} value={season}>{season}</option>
@@ -365,7 +419,7 @@ const Visualization: React.FC<VisualizationProps> = ({ initialFilters = {} }) =>
 
           {/* Degree Filter */}
           <div>
-            <label className="form-label">Node Degree</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Node Degree</label>
             <div className="space-y-2">
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Min Degree</label>
@@ -405,49 +459,30 @@ const Visualization: React.FC<VisualizationProps> = ({ initialFilters = {} }) =>
             />
             <span className="text-sm">Show Labels</span>
           </label>
-          <button onClick={clearAllFilters} className="btn-secondary btn-sm">
+          <button onClick={clearAllFilters} className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-sm">
             Clear All Filters
           </button>
         </div>
       </div>
 
       {/* Graph Visualization */}
-      <div className="graph-container bg-white rounded-lg shadow border">
+      <div className="graph-container bg-white rounded-lg shadow border" style={{ height: '600px' }}>
         {filteredData.nodes.length > 0 ? (
           <ForceGraph2D
             ref={graphRef}
-            graphData={{
-              nodes: filteredData.nodes.map(n => ({ ...n, id: n.id })),
-              links: filteredData.edges.map(e => ({
-                source: e.source,
-                target: e.target,
-                club_id: e.club_id,
-                club_name: e.club_name,
-                season: e.season,
-                club_country: e.club_country
-              }))
-            }}
+            graphData={forceGraphData}
             nodeId="id"
             nodeLabel={showLabels ? 'name' : undefined}
             nodeCanvasObject={nodeCanvasObject as any}
             linkCanvasObject={linkCanvasObject as any}
             onNodeClick={handleNodeClick}
             onNodeHover={handleNodeHover}
-            onNodeDragEnd={(node) => {
+            onNodeDragEnd={(node: any) => {
               node.fx = node.x;
               node.fy = node.y;
             }}
             linkDirectionalArrowLength={0}
             linkDirectionalArrowRelPos={1}
-            nodeVal={nodeSize}
-            nodeSize={nodeSize}
-            linkWidth={0.5}
-            linkDistance={linkDistance}
-            cooldownTime={10000}
-            warmupTime={1000}
-            onEngineTick={() => {
-              // Optional: update something on each tick
-            }}
           />
         ) : (
           <div className="h-full flex items-center justify-center text-gray-500">
@@ -466,9 +501,9 @@ const Visualization: React.FC<VisualizationProps> = ({ initialFilters = {} }) =>
 
       {/* Tooltip */}
       {hoveredNode && !selectedNode && (
-        <div className="tooltip">
+        <div className="tooltip" style={{ position: 'absolute', background: 'rgba(0, 0, 0, 0.8)', color: 'white', padding: '8px 12px', borderRadius: '4px', pointerEvents: 'none', fontSize: '12px', zIndex: 1000, maxWidth: '300px' }}>
           {(() => {
-            const node = graphData.nodes.find(n => n.id === hoveredNode);
+            const node = graphData.nodes.find((n: NodeData) => n.id === hoveredNode);
             return node ? (
               <div>
                 <strong>{node.name}</strong><br />

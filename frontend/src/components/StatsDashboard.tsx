@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { graphApi, strongestApi, playersApi, clubsApi } from '../api';
+import { graphApi, strongestApi, playersApi } from '../api';
 import { useNavigate } from 'react-router-dom';
 
 const StatsDashboard: React.FC = () => {
   const [stats, setStats] = useState<any>(null);
   const [strongestConnections, setStrongestConnections] = useState<any[]>([]);
   const [playerCountByCountry, setPlayerCountByCountry] = useState<Record<string, number>>({});
-  const [clubCountByCountry, setClubCountByCountry] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -33,16 +32,6 @@ const StatsDashboard: React.FC = () => {
           }
         });
         setPlayerCountByCountry(countryCounts);
-        
-        // Load clubs and count by country
-        const clubsData = await clubsApi.list({ limit: 10000 });
-        const clubCountryCounts: Record<string, number> = {};
-        clubsData.forEach((club: any) => {
-          if (club.country) {
-            clubCountryCounts[club.country] = (clubCountryCounts[club.country] || 0) + 1;
-          }
-        });
-        setClubCountByCountry(clubCountryCounts);
         
       } catch (err) {
         console.error('Error loading dashboard data:', err);

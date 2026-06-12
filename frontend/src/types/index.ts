@@ -28,6 +28,15 @@ export interface GraphNode {
   position: string | null;
   current_club_id: string | null;
   degree: number;
+  x?: number;
+  y?: number;
+  z?: number;
+  vx?: number;
+  vy?: number;
+  vz?: number;
+  fx?: number | null;
+  fy?: number | null;
+  fz?: number | null;
 }
 
 export interface GraphEdge {
@@ -142,13 +151,7 @@ export interface ClubFilter {
 }
 
 // Visualization types
-export interface NodeObject {
-  id: string;
-  name: string;
-  country: string | null;
-  position: string | null;
-  degree: number;
-  current_club_id: string | null;
+export interface NodeObject extends GraphNode {
   x?: number;
   y?: number;
   z?: number;
@@ -160,13 +163,9 @@ export interface NodeObject {
   fz?: number | null;
 }
 
-export interface EdgeObject {
+export interface EdgeObject extends GraphEdge {
   source: string;
   target: string;
-  club_id: string;
-  club_name: string;
-  season: string;
-  club_country: string | null;
 }
 
 export interface VisualizationFilter {

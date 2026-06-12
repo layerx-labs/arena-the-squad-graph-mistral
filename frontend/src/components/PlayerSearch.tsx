@@ -27,7 +27,7 @@ const PlayerSearch: React.FC = () => {
         setPlayers(playersData);
         
         // Extract unique countries
-        const countries = [...new Set(playersData.map(p => p.country).filter(Boolean))].sort();
+        const countries = [...new Set(playersData.map((p: Player) => p.country).filter(Boolean) as string[])].sort();
         setAvailableCountries(countries);
         
       } catch (err) {

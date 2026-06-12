@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { playersApi, teammatesApi, clubsApi } from '../api';
+import { playersApi } from '../api';
 import type { Player, PlayerDetail as PlayerDetailType } from '../types';
 
 const PlayerDetail: React.FC = () => {
@@ -67,7 +67,7 @@ const PlayerDetail: React.FC = () => {
     return (
       <div className="text-center text-gray-500 py-8">
         <p>Player not found</p>
-        <button onClick={() => navigate('/players')} className="mt-4 btn-secondary">
+        <button onClick={() => navigate('/players')} className="mt-4 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded">
           Back to Players
         </button>
       </div>
@@ -115,8 +115,8 @@ const PlayerDetail: React.FC = () => {
           <div className="flex-1">
             <div className="flex flex-wrap items-center gap-4">
               <h1 className="text-2xl font-bold text-gray-900">{player.name}</h1>
-              <span className="badge badge-country">{player.country || 'N/A'}</span>
-              <span className="badge badge-club">{player.position || 'N/A'}</span>
+              <span className="inline-block px-3 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">{player.country || 'N/A'}</span>
+              <span className="inline-block px-3 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">{player.position || 'N/A'}</span>
             </div>
 
             {/* Player Stats */}
@@ -142,7 +142,7 @@ const PlayerDetail: React.FC = () => {
 
           {/* Action Buttons */}
           <div className="flex space-x-2">
-            <button onClick={() => navigate(`/connection?player1_id=${player.id}`)} className="btn-secondary">
+            <button onClick={() => navigate(`/connection?player1_id=${player.id}`)} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded">
               Find Connections
             </button>
           </div>
@@ -327,13 +327,13 @@ const PlayerDetail: React.FC = () => {
                 {Object.entries(byCountry).slice(0, 10).map(([country, players]) => (
                   <span 
                     key={country}
-                    className="badge badge-country"
+                    className="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
                   >
                     {country} ({players.length})
                   </span>
                 ))}
                 {Object.keys(byCountry).length > 10 && (
-                  <span className="badge badge-country">+{Object.keys(byCountry).length - 10} more</span>
+                  <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">+{Object.keys(byCountry).length - 10} more</span>
                 )}
               </div>
             );

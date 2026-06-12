@@ -1,8 +1,9 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 
 // Create axios instance with base URL
+// For Vercel deployment, use relative path
 const api: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL: (import.meta as any).env?.VITE_API_URL || '/api',
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -139,19 +140,6 @@ export const clubsApi = {
   // Get club detail
   getDetail: async (club_id: string) => {
     const response = await api.get(`/clubs/${club_id}`);
-    return response.data;
-  },
-};
-
-// Cross-national connections (using strongest API as proxy)
-export const crossNationalApi = {
-  // Get cross-national connections
-  getCrossNational: async (country1?: string, country2?: string) => {
-    // For now, we'll get all strongest connections and filter client-side
-    // In a future version, this could be a dedicated endpoint
-    const response = await api.get('/strongest-connections', { 
-      params: { min_players: 2 } 
-    });
     return response.data;
   },
 };

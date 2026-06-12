@@ -14,8 +14,9 @@
       "use": "@vercel/static-build",
       "config": {
         "distDir": "dist",
-        "installCommand": "cd frontend && pnpm install",
-        "buildCommand": "cd frontend && pnpm build"
+        "installCommand": "cd frontend && corepack enable && pnpm install",
+        "buildCommand": "cd frontend && pnpm build",
+        "packageManager": "pnpm@8.15.0"
       }
     }
   ],

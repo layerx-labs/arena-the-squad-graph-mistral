@@ -1,322 +1,214 @@
-# The Squad Graph Explorer - Project Plan
+# The Squad Graph: World Cup 2026 Player Connection Explorer
 
 ## Project Idea
-**"Squad Graph Explorer"** - A web application that builds and visualizes a social graph of 2026 World Cup players connected by shared club history. The app loads the provided dataset, constructs the graph using the reference algorithm, and provides multiple query interfaces (REST API, web UI, interactive visualization) to explore connections between players.
+**Build a queryable, interactive social graph of World Cup 2026 players connected by shared club history.**
 
-**Key Differentiators:**
-- **100% accurate graph construction** using the reference algorithm (group by club_id + season)
-- **Multiple query interfaces**: Basic teammates query + advanced analytics (degrees of separation, strongest connections)
-- **Interactive visualization** using D3.js with filters for country, club, and season
-- **Cross-national insights**: Highlight connections between players from rival national teams
+This project will:
+1. Ingest the provided `players.json` dataset (1,248 players, 1,578 clubs, ~11,000 edges).
+2. Construct a graph where nodes are players and edges represent shared club+season stints.
+3. Expose a **live query interface** to:
+   - Find all players who were teammates at a given club/season (core requirement).
+   - Calculate degrees of separation between any two players (stretch).
+   - Surface strongest club connections (e.g., "PSG 2023-24 connected 5 WC2026 players from 3 nations").
+4. Provide an **interactive force-directed visualization** of the graph (filterable by club, season, or national team).
 
-## Target User
-- Football analysts and journalists covering the 2026 World Cup
-- Fans exploring "hidden connections" between players
-- Data enthusiasts interested in social graph analysis
-- Developers who want to query the graph programmatically
+**Why this wins**: The rubric heavily weights *graph correctness* (20%) and *query usefulness* (20%). By focusing on a **bulletproof graph construction** (using `club_id + season` edges) and a **minimal but powerful query API**, we maximize scores on the highest-weight criteria. The visualization and stretch goals (degrees of separation) add polish for *usefulness* and *write-up clarity*.
+
+---
+
+## Target User & Problem
+- **User**: Football analysts, journalists, and fans covering the World Cup.
+- **Problem**: No existing tool lets users explore cross-national connections between players based on shared club history. For example, a journalist writing about Brazil vs. France might want to know if any players on both squads were teammates at the club level.
+
+---
 
 ## Core Features
+| Feature | Description | Rubric Mapping |
+|---------|-------------|----------------|
+| **Graph Construction** | Build edges from `(club_id, season)` groups of ≥2 players. | Graph correctness (20%) |
+| **Core Query** | `GET /api/teammates?club_id=Q483020&season=2023-24` → list of player IDs/names. | Query usefulness (20%) |
+| **Degrees of Separation** | `GET /api/degrees?player_a=Q66818509&player_b=Q123456` → shortest path length. | Query usefulness (20%) |
+| **Club Connection Stats** | `GET /api/club-connections?club_id=Q483020` → count of connected players/nations. | Query usefulness (20%) |
+| **Interactive Visualization** | Force-directed graph (D3.js or Cytoscape) with filters for club/season/nation. | Query usefulness (20%), Write-up clarity (20%) |
+| **Data Accuracy** | Validate against `gaps.json`; log coverage stats (e.g., 8 players with no history). | Data accuracy (20%) |
 
-### 1. Graph Construction (Core Requirement)
-- Load `players.json` and `gaps.json` from CDN
-- Build in-memory graph using reference algorithm:
-  ```python
-  groups = defaultdict(set)
-  for p in players:
-      for s in p["stints"]:
-          groups[(s["club_id"], s["season"])].add(p["id"])
-  edges = {tuple(sorted(pair)) for members in groups.values() for pair in combinations(members, 2)}
-  ```
-- Pre-compute indexes for fast queries:
-  - `club_season_to_players`: Reverse lookup for basic query
-  - `player_to_club_seasons`: For degrees of separation
-  - `country_pairs`: Track cross-national connections
-
-### 2. Query Interface (Core Requirement)
-- **Basic Query**: Given club_id and season, return all players who were teammates
-  - Endpoint: `GET /api/teammates?club_id={club_id}&season={season}`
-  - Example: `/api/teammates?club_id=Q483020&season=2023-24` → [Vitinha, Nuno Mendes, Gonçalo Ramos]
-  - Sanity check: Verify PSG 2023-24 does NOT include João Neves (he joined in 2024-25)
-
-### 3. Advanced Queries (Stretch Goals)
-- **Degrees of Separation**: BFS to find shortest path between any two players
-  - Endpoint: `GET /api/connection?player1={id}&player2={id}`
-  - Returns path and degree count
-- **Strongest Connections**: Clubs/seasons with the most players
-  - Endpoint: `GET /api/strongest-connections?min_players={n}`
-  - Returns sorted list of (club_id, season, player_count, player_ids)
-- **Cross-National Connections**: Pairs of players from different countries who were teammates
-  - Endpoint: `GET /api/cross-national?country1={cc}&country2={cc}`
-
-### 4. Interactive Visualization (Stretch Goal)
-- **Force-directed graph** using D3.js/react-force-graph
-- **Filters**:
-  - By country (highlight all players from Brazil, etc.)
-  - By club (show only connections through specific clubs)
-  - By season (temporal filtering)
-  - By degree of separation (show only nodes within N hops)
-- **Node/Edge styling**:
-  - Color nodes by country
-  - Size nodes by degree/centrality
-  - Color edges by club
-  - Tooltips with player/club details
-- **Path highlighting**: Show shortest path between two selected players
-
-### 5. Web UI
-- **Search interface**: Find players by name, club, or country
-- **Query builder**: Form-based interface for all API endpoints
-- **Visualization panel**: Interactive graph display
-- **Results table**: Tabular display of query results with sorting/filtering
-- **Player detail page**: Show full club history and connections for a single player
+---
 
 ## Tech Stack
+| Component | Choice | Justification |
+|-----------|--------|---------------|
+| **Backend** | Python + FastAPI | Lightweight, async-ready, and perfect for exposing query endpoints. |
+| **Graph Processing** | NetworkX | Battle-tested graph library for edge generation, shortest paths, and clustering. |
+| **Frontend** | React + TypeScript + Vite | Fast iteration, strong typing, and easy deployment. |
+| **Visualization** | Cytoscape.js | High-performance graph rendering with built-in force-directed layout. |
+| **Data Storage** | In-memory (no DB) | Dataset is small (~1MB); loading into memory at startup avoids DB overhead. |
+| **Deployment** | Vercel | Free tier, automatic CI/CD from GitHub, and global CDN for frontend. |
+| **Styling** | Tailwind CSS | Utility-first for rapid UI development. |
 
-| Component | Technology | Justification |
-|-----------|------------|---------------|
-| Backend | FastAPI (Python 3.11+) | Lightweight, fast, easy to implement graph logic; matches reference code language |
-| Frontend | React 18 + TypeScript + Vite | Modern, type-safe, fast development; widely used and well-documented |
-| Visualization | D3.js + react-force-graph | Industry standard for graph visualizations; react-force-graph simplifies integration |
-| Styling | Tailwind CSS | Rapid, consistent styling without CSS overhead |
-| HTTP Client | axios | Simple, promise-based HTTP requests |
-| Deployment | Vercel | Free tier sufficient; supports both frontend and backend; easy CI/CD |
-| Package Manager | pnpm | Fast, efficient; works well with monorepo if needed |
+---
 
 ## Architecture
-
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                              Vercel Deployment                              │
-├─────────────────────────────┬───────────────────────────────────────────┤
-│         Frontend (React)     │            Backend (FastAPI)               │
-│  ┌─────────────────────────┐  │  ┌─────────────────────────────────────┐ │
-│  │ - QueryBuilder.tsx       │  │  │ - main.py (FastAPI app)                │ │
-│  │ - Visualization.tsx      │  │  │ - graph_builder.py (graph logic)      │ │
-│  │ - PlayerDetail.tsx       │  │  │ - models.py (Pydantic models)         │ │
-│  │ - api.ts (axios client)  │  │  │ - routes/ (API endpoints)             │ │
-│  └─────────────────────────┘  │  └─────────────────────────────────────┘ │
-│  ┌─────────────────────────┐  │  ┌─────────────────────────────────────┐ │
-│  │ - D3.js / react-force-   │  │  │ - data_loader.py (load JSON)          │ │
-│  │   graph                 │  │  │ - indexes.py (pre-computed indexes)    │ │
-│  │ - Tailwind CSS          │  │  │ - utils.py (helpers)                  │ │
-│  └─────────────────────────┘  │  └─────────────────────────────────────┘ │
-└─────────────────────────────┴───────────────────────────────────────────┘
-                                     │
-                                     ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                                Data Layer                                     │
-│  - Load players.json from CDN (with local fallback)                         │
-│  - Load gaps.json for coverage transparency                                  │
-│  - Build graph in-memory at startup                                         │
-│  - Pre-compute all indexes for O(1) or O(log n) queries                      │
-└─────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────┐
+│                     Vercel Deployment                   │
+├─────────────────┬─────────────────┬───────────────────┤
+│  Frontend (React) │  Backend (FastAPI) │  Data (players.json) │
+│  - Cytoscape.js   │  - /api/teammates  │  - Loaded at startup  │
+│  - Query UI       │  - /api/degrees   │  - In-memory cache   │
+│  - Filters        │  - /api/club-connections │                   │
+└─────────┬─────────┴─────────┬─────────────────────┘
+          │                   │
+          │ FastAPI (localhost:8000) │
+          │                   │
+          ▼                   ▼
+┌─────────────────┐ ┌─────────────────┐
+│   Browser        │ │   In-Memory      │
+│   (Vercel Edge)  │ │   Graph (NetworkX)│
+└─────────────────┘ └─────────────────┘
 ```
 
 ### Data Flow
+1. **Startup**: Backend loads `players.json` and `gaps.json` from `/data` (committed to repo).
+2. **Graph Construction**:
+   - Group players by `(club_id, season)` using a `defaultdict(set)`.
+   - For each group with ≥2 players, create edges between all pairs (using `itertools.combinations`).
+   - Store graph in NetworkX for advanced queries (shortest path, clustering).
+3. **API Endpoints**:
+   - `/api/teammates`: Filter graph edges by `club_id` and `season`.
+   - `/api/degrees`: Use NetworkX’s `shortest_path` between two player nodes.
+   - `/api/club-connections`: Aggregate edges by club/season, return player/nation counts.
+4. **Frontend**:
+   - Fetch data from backend APIs.
+   - Render interactive graph with Cytoscape.js.
+   - Allow filtering by club, season, or national team.
 
-1. **Startup**: Backend loads `players.json` and `gaps.json` from CDN, builds graph and indexes
-2. **Query**: Frontend sends request to backend API
-3. **Processing**: Backend uses pre-computed indexes to answer queries quickly
-4. **Response**: Backend returns JSON response
-5. **Rendering**: Frontend displays results in table or visualization
-
-### File Structure
-
-```
-project/
-├── backend/
-│   ├── main.py              # FastAPI app entry point
-│   ├── graph_builder.py     # Graph construction logic
-│   ├── indexes.py           # Pre-computed query indexes
-│   ├── models.py            # Pydantic models for request/response
-│   ├── routes/
-│   │   ├── teammates.py     # Basic query endpoint
-│   │   ├── connection.py    # Degrees of separation
-│   │   ├── strongest.py     # Strongest connections
-│   │   └── graph.py         # Full graph data
-│   ├── data/
-│   │   ├── players.json     # Local copy of dataset
-│   │   └── gaps.json        # Local copy of gaps
-│   ├── tests/
-│   │   └── test_graph.py    # Graph construction tests
-│   └── requirements.txt
-│
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── QueryBuilder.tsx
-│   │   │   ├── Visualization.tsx
-│   │   │   ├── PlayerDetail.tsx
-│   │   │   └── ResultsTable.tsx
-│   │   ├── hooks/
-│   │   │   └── useGraph.ts    # Graph data fetching
-│   │   ├── types/
-│   │   │   └── index.ts       # TypeScript interfaces
-│   │   ├── api/
-│   │   │   └── index.ts       # API client
-│   │   ├── App.tsx
-│   │   ├── main.tsx
-│   │   └── styles/
-│   │       └── global.css
-│   ├── public/
-│   ├── package.json
-│   ├── vite.config.ts
-│   └── tsconfig.json
-│
-├── vercel.json              # Vercel configuration
-├── README.md                # Project documentation
-└── PLAN.md                  # This file
-```
+---
 
 ## Rubric Mapping
 
 ### 1. Data Accuracy and Coverage (20%)
-**Strategy:**
-- Use the provided `players.json` and `gaps.json` exactly as-is
-- Load from CDN with local fallback (commit copy to repo)
-- Validate data against sanity checks from brief:
-  - ~1,248 players
-  - ~1,578 clubs
-  - ~11,000 edges
-  - PSG 2023-24: Vitinha, Nuno Mendes, Gonçalo Ramos (no João Neves)
-- Never join on club name; always use club_id (Wikidata QID)
-- Document coverage gaps from `gaps.json` in README
-
-**Deliverables:**
-- Data loading code with validation
-- Tests that verify sanity checks
-- Clear documentation of data sources and limitations
+- **How**: Use the provided `players.json` *as-is* (no modifications). Log stats from `gaps.json` (e.g., 8 players with no history) in the README.
+- **Validation**: 
+  - Verify `club_id` joins (never use club names).
+  - Confirm edge count matches expected ~11,000.
+  - Test PSG 2023-24 case (Vitinha, Nuno Mendes, Gonçalo Ramos connected; João Neves excluded).
 
 ### 2. Graph Correctness (20%)
-**Strategy:**
-- Implement the reference algorithm exactly as provided in brief
-- Group by `(club_id, season)` tuples
-- Create edges between all pairs in each group (combinations of 2)
-- Use sets to avoid duplicate edges
-- Test with specific examples from brief (PSG 2023-24)
-
-**Deliverables:**
-- `graph_builder.py` with reference algorithm implementation
-- Unit tests verifying graph construction
-- Test case for PSG example
+- **How**: 
+  - Edges are *only* created when players share `(club_id, season)`.
+  - Use NetworkX to validate graph properties (e.g., no duplicate edges, bidirectional connections).
+  - Unit tests for edge cases (e.g., players with no stints, single-player groups).
 
 ### 3. Query and Visualization Usefulness (20%)
-**Strategy:**
-- **Basic query**: Exact match for core requirement
-- **Advanced queries**: Degrees of separation + strongest connections
-- **Visualization**: Interactive graph with multiple filter options
-- **UX**: Intuitive interface for non-technical users
-- **Performance**: Pre-compute indexes for fast responses (<100ms for all queries)
-
-**Deliverables:**
-- REST API with all endpoints documented
-- Web UI with form-based query builder
-- Interactive visualization with D3.js
-- Responsive design for mobile/desktop
+- **How**:
+  - Core query (`/api/teammates`) is the primary deliverable.
+  - Stretch queries (`/api/degrees`, `/api/club-connections`) add depth.
+  - Interactive visualization with filters (club/season/nation) makes the graph explorable.
+  - Example use case in README: "Find all Brazil/France players who shared a club."
 
 ### 4. Code Quality (20%)
-**Strategy:**
-- **Structure**: Clean separation of concerns (routes, models, business logic)
-- **Typing**: Type hints in Python, TypeScript in frontend
-- **Tests**: Unit tests for graph construction, integration tests for API
-- **Documentation**: Docstrings, comments where complex logic exists
-- **Style**: Consistent formatting (black for Python, prettier for JS/TS)
-- **Error handling**: Graceful degradation, clear error messages
-
-**Deliverables:**
-- Well-organized codebase with clear file structure
-- Type hints throughout
-- Test suite with good coverage
-- Consistent code style
+- **How**:
+  - Modular structure: `data/`, `backend/`, `frontend/` directories.
+  - Type hints (Python) and TypeScript (frontend).
+  - FastAPI’s auto-generated OpenAPI docs for the API.
+  - Clean separation of graph logic (NetworkX) and API routes.
 
 ### 5. Write-up Clarity (20%)
-**Strategy:**
-- **README.md**: Comprehensive setup and usage guide
-  - Local development instructions
-  - API documentation
-  - Query examples
-  - Architecture overview
-  - Data sources and limitations
-- **TAIKAI page**: Detailed project write-up
-  - Problem statement and solution
-  - Technical approach
-  - Challenges and solutions
-  - Results and validation
-
-**Deliverables:**
-- README.md with all sections above
-- TAIKAI project page (written in build phase)
-
-## Build Phase Milestones
-
-| # | Milestone | Description | Success Criteria |
-|---|-----------|-------------|------------------|
-| 1 | Project Setup | Initialize backend (FastAPI) and frontend (React+TS+Vite) | Both projects created, basic structure in place |
-| 2 | Data Loading | Load and validate `players.json` and `gaps.json` | Data loads without errors, sanity checks pass |
-| 3 | Graph Construction | Implement reference algorithm | Graph has ~11,000 edges, PSG test case passes |
-| 4 | Basic Query | Implement `/api/teammates` endpoint | Endpoint returns correct results for known cases |
-| 5 | Advanced Queries | Implement degrees of separation and strongest connections | All advanced endpoints work correctly |
-| 6 | Frontend UI | Build query builder and results display | Can query and see results in browser |
-| 7 | Visualization | Add D3.js/react-force-graph visualization | Interactive graph renders with filters |
-| 8 | Testing | Write unit and integration tests | All tests pass, edge cases covered |
-| 9 | Documentation | Write README.md | All sections complete, clear and accurate |
-| 10 | Deployment | Deploy to Vercel | App accessible at Vercel URL, all features work |
-| 11 | TAIKAI Page | Write project page | Complete write-up submitted to TAIKAI |
-
-## Definition of Done
-
-The project is **DONE** when:
-
-1. ✅ All core requirements are implemented:
-   - Squads for all nations loaded
-   - Per-player, per-season club histories loaded
-   - Queryable graph built with correct connections
-   - Basic query endpoint works
-
-2. ✅ At least 2 stretch goals achieved:
-   - Interactive graph visualization
-   - Degrees of separation query
-
-3. ✅ Code quality standards met:
-   - Type hints in Python and TypeScript
-   - Unit tests for graph construction
-   - Clean, well-organized codebase
-   - Consistent style
-
-4. ✅ Documentation complete:
-   - README.md with setup, usage, architecture
-   - API documentation
-   - Data sources and limitations documented
-
-5. ✅ Deployment successful:
-   - App deployed to Vercel
-   - All features accessible and working
-   - No console errors
-
-6. ✅ TAIKAI page written:
-   - Detailed project write-up
-   - All required sections covered
-
-## Risk Mitigation
-
-| Risk | Mitigation |
-|------|------------|
-| Dataset changes | Pin to v1.0 commit hash in CDN URL; commit local copy |
-| Graph too large for memory | ~11,000 edges is small; pre-compute indexes for efficiency |
-| D3.js complexity | Use react-force-graph wrapper to simplify |
-| Vercel cold starts | Keep backend simple; pre-compute everything at startup |
-| Time constraints | Prioritize core requirements first, then stretch goals |
-
-## Success Metrics
-
-- **Graph Accuracy**: 100% match with reference algorithm
-- **Query Performance**: All endpoints respond in <100ms
-- **Test Coverage**: >80% for backend, >70% for frontend
-- **User Satisfaction**: Intuitive UI that non-developers can use
-- **Documentation**: Any developer can clone, run, and understand the project
+- **How**:
+  - README covers:
+    - Project overview and motivation.
+    - Data sources (`players.json`, `gaps.json`).
+    - Graph construction logic (with Python snippet from brief).
+    - API endpoints and example queries.
+    - How to run locally and deploy.
+    - Known limitations (from `gaps.json`).
+  - TAIKAI page mirrors README with screenshots of the visualization.
 
 ---
 
-**Next Steps:**
-1. Call `complete_phase` with summary
-2. Enter BUILD phase
-3. Start with Milestone 1: Project Setup
+## Milestones (Build Phase)
+1. **Data Ingestion**
+   - [ ] Commit `players.json` and `gaps.json` to `/data`.
+   - [ ] Backend: Load data and log summary stats (player/club counts).
+
+2. **Graph Construction**
+   - [ ] Implement `(club_id, season)` grouping and edge generation.
+   - [ ] Validate edge count (~11,000) and test PSG 2023-24 case.
+
+3. **Core API**
+   - [ ] FastAPI endpoint for `/api/teammates`.
+   - [ ] Unit tests for edge cases (empty results, invalid inputs).
+
+4. **Stretch APIs**
+   - [ ] `/api/degrees` (shortest path between players).
+   - [ ] `/api/club-connections` (aggregate stats).
+
+5. **Frontend**
+   - [ ] Basic React UI with Cytoscape.js graph.
+   - [ ] Filters for club, season, nation.
+   - [ ] Query interface for `/api/teammates`.
+
+6. **Deployment**
+   - [ ] Deploy backend to Vercel (Serverless Functions).
+   - [ ] Deploy frontend to Vercel.
+   - [ ] Verify CORS and API connectivity.
+
+7. **Documentation**
+   - [ ] README with setup, API docs, and examples.
+   - [ ] TAIKAI project page draft.
+
+8. **Validation**
+   - [ ] Manual test: Query PSG 2023-24 → verify Vitinha, Nuno Mendes, Gonçalo Ramos.
+   - [ ] Manual test: Degrees of separation between two known connected players.
+
+---
+
+## Definition of Done
+- [ ] `players.json` and `gaps.json` committed to repo.
+- [ ] Backend API (`/api/teammates`, `/api/degrees`, `/api/club-connections`) deployed and functional.
+- [ ] Frontend with interactive graph visualization deployed.
+- [ ] README covers all rubric criteria (data, graph logic, API, setup).
+- [ ] All core queries return correct results (validated against brief examples).
+- [ ] Graph has ~11,000 edges and passes sanity checks (PSG 2023-24 case).
+- [ ] Code is modular, typed, and tested.
+- [ ] Live Vercel links for frontend and backend.
+
+---
+
+## File Structure (Final Repo)
+```
+layerx-labs/arena-the-squad-graph-mistral/
+├── data/
+│   ├── players.json          # Committed copy of dataset
+│   └── gaps.json             # Committed copy of gaps
+├── backend/
+│   ├── main.py               # FastAPI app + graph construction
+│   ├── models.py             # Pydantic models for data
+│   ├── test_graph.py         # Unit tests for graph logic
+│   └── requirements.txt      # Dependencies (fastapi, networkx, etc.)
+├── frontend/
+│   ├── src/
+│   │   ├── App.tsx           # React + Cytoscape.js
+│   │   ├── api.ts            # API client
+│   │   └── ...
+│   ├── package.json
+│   └── vite.config.ts
+├── README.md                 # Full documentation
+└── vercel.json               # Vercel config
+```
+
+---
+
+## Risk Mitigation
+- **Graph Performance**: With ~1,248 nodes and ~11,000 edges, NetworkX operations (e.g., shortest path) are O(1) for small graphs. No scaling concerns.
+- **CORS**: Vercel Serverless Functions have permissive CORS by default. Explicitly enable in FastAPI if needed.
+- **Data Integrity**: Use `club_id` for joins (never names). Log warnings for any missing `club_id` in stints.
+- **Visualization**: Cytoscape.js handles 1k+ nodes smoothly. For larger graphs, implement lazy loading or sampling.
+
+---
+
+## Stretch Goals (If Time Permits)
+1. **Advanced Filters**: Filter graph by league (e.g., "Premier League only") or era (e.g., "2020-2024").
+2. **Player Profiles**: Click a node to see full stint history.
+3. **Export**: Download subgraphs as JSON or GraphML.
+4. **Mobile Responsiveness**: Tailwind breakpoints for smaller screens.
