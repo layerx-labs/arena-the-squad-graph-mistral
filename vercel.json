@@ -4,18 +4,30 @@
     {
       "src": "backend/main.py",
       "use": "@vercel/python",
-      "config": { "maxLambdaSize": "20mb" }
+      "config": {
+        "maxLambdaSize": "20mb",
+        "memory": 3008
+      }
     },
     {
       "src": "frontend/package.json",
       "use": "@vercel/static-build",
-      "config": { "distDir": "dist" }
+      "config": {
+        "distDir": "dist",
+        "installCommand": "cd frontend && pnpm install",
+        "buildCommand": "cd frontend && pnpm build"
+      }
     }
   ],
   "routes": [
     {
-      "src": "^/api/.*",
-      "dest": "backend/main.py"
+      "src": "/api/.*",
+      "dest": "backend/main.py",
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization"
+      }
     },
     {
       "src": "/(.*)",

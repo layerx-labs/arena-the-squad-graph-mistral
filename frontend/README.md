@@ -5,54 +5,48 @@ React + TypeScript frontend for the Squad Graph Explorer application.
 ## Overview
 
 This frontend provides:
-- Interactive graph visualization with D3.js and react-force-graph
+- Interactive graph visualization using D3.js and react-force-graph
 - Multiple query interfaces for exploring player connections
 - Responsive design with Tailwind CSS
-- Type-safe codebase with TypeScript
+- Type-safe code with TypeScript
 
 ## Setup
 
 ### Prerequisites
 
 - Node.js 18+
-- npm or pnpm
+- pnpm (recommended) or npm/yarn
 
 ### Installation
 
 ```bash
 cd frontend
 pnpm install
-# or
-npm install
+```
+
+### Configuration
+
+Create a `.env` file for custom configuration:
+
+```bash
+VITE_API_URL=/api
 ```
 
 ### Running the Development Server
 
 ```bash
 pnpm dev
-# or
-npm run dev
 ```
 
-The development server will start at `http://localhost:3000` and proxy API requests to `http://localhost:8000`.
+The development server will start at `http://localhost:3000` with proxy to the backend API.
 
 ### Building for Production
 
 ```bash
 pnpm build
-# or
-npm run build
 ```
 
-This creates a `dist` directory with optimized production builds.
-
-### Preview Production Build
-
-```bash
-pnpm preview
-# or
-npm run preview
-```
+This creates a production-ready build in the `dist` directory.
 
 ## Project Structure
 
@@ -60,132 +54,177 @@ npm run preview
 frontend/
 ├── src/
 │   ├── components/          # React components
-│   │   ├── QueryBuilder.tsx  # Basic teammates query interface
-│   │   ├── Visualization.tsx # Interactive graph visualization
-│   │   ├── ConnectionFinder.tsx # Degrees of separation tool
-│   │   ├── StatsDashboard.tsx # Overview and statistics
-│   │   ├── PlayerSearch.tsx  # Player directory
-│   │   └── PlayerDetail.tsx  # Individual player details
+│   │   ├── App.tsx         # Main application component
+│   │   ├── ConnectionFinder.tsx  # Degrees of separation finder
+│   │   ├── PlayerDetail.tsx      # Player detail page
+│   │   ├── PlayerSearch.tsx      # Player directory with search
+│   │   ├── QueryBuilder.tsx       # Teammates query interface
+│   │   ├── StatsDashboard.tsx      # Main dashboard with statistics
+│   │   └── Visualization.tsx      # Interactive graph visualization
 │   │
-│   ├── hooks/               # React hooks
-│   ├── types/               # TypeScript interfaces
-│   │   └── index.ts
+│   ├── api/               # API client
+│   │   └── index.ts      # Axios-based API client
 │   │
-│   ├── api/                 # API clients
-│   │   └── index.ts
+│   ├── types/             # TypeScript type definitions
+│   │   └── index.ts      # All type definitions
 │   │
-│   ├── styles/              # CSS and Tailwind
-│   │   └── global.css
+│   ├── hooks/             # Custom React hooks
 │   │
-│   ├── pages/               # Page components
-│   ├── App.tsx              # Main app component
-│   └── main.tsx             # Entry point
+│   ├── styles/            # CSS and styling
+│   │   └── global.css    # Tailwind CSS imports and custom styles
+│   │
+│   ├── App.tsx           # Main app with routing
+│   └── main.tsx          # Entry point
 │
-├── public/                 # Static files
-├── package.json
-├── vite.config.ts
-├── tailwind.config.js
-└── tsconfig.json
+├── public/               # Static assets
+│   └── index.html        # HTML template
+│
+├── package.json           # Dependencies and scripts
+├── vite.config.ts         # Vite configuration
+├── tsconfig.json          # TypeScript configuration
+└── tailwind.config.js     # Tailwind CSS configuration
 ```
 
 ## Features
 
-### Graph Visualization
-- Force-directed graph layout using react-force-graph
-- Color-coded nodes by country
-- Customizable display options (labels, node size, link distance)
-- Interactive filtering by country, club, season, and degree
-- Node selection and highlighting
+### Components
 
-### Query Builder
-- Form-based interface for the core teammates query
-- Club and season selection with search
-- Quick query buttons for popular clubs
-- Results displayed in a sortable table
+1. **StatsDashboard**: Overview with statistics, top connections, and player distribution
+2. **Visualization**: Interactive force-directed graph with filtering capabilities
+3. **QueryBuilder**: Form-based interface for finding teammates by club and season
+4. **ConnectionFinder**: Find degrees of separation between any two players
+5. **PlayerSearch**: Browse and search all players in the dataset
+6. **PlayerDetail**: Detailed view of a single player's club history and connections
 
-### Connection Finder
-- Find degrees of separation between any two players
-- Visual path display showing the connection chain
-- Player search with autocomplete
-- Random connection generator for exploration
+### Visualization Features
 
-### Player Directory
-- Searchable list of all players
-- Filter by country
-- Pagination support
-- Detailed player profiles
+- **Force-directed layout**: Nodes repel each other, edges pull connected nodes together
+- **Color coding**: Nodes colored by country, edges colored by club
+- **Filtering**: Filter by country, club, season, and node degree
+- **Interactivity**: Click nodes to see details, hover for tooltips, zoom and pan
+- **Custom rendering**: Custom node and edge rendering with canvas
 
-### Statistics Dashboard
-- Overview of graph statistics
-- Top club-seasons by player count
-- Player distribution by country
-- Quick access to main features
+### API Integration
 
-## Configuration
+The frontend connects to the backend API through the `api/` module, which provides:
+- Type-safe request/response handling
+- Error handling and logging
+- Centralized API configuration
 
-### Environment Variables
+## Routes
 
-Create a `.env` file in the frontend directory:
+| Path | Component | Description |
+|------|-----------|-------------|
+| `/` | StatsDashboard | Main dashboard with statistics |
+| `/explore` | Visualization | Interactive graph visualization |
+| `/query` | QueryBuilder | Find teammates by club and season |
+| `/connection` | ConnectionFinder | Find degrees of separation |
+| `/players` | PlayerSearch | Browse all players |
+| `/players/:playerId` | PlayerDetail | View player details |
 
-```env
-VITE_API_URL=/api
-```
+## Tech Stack
 
-- `VITE_API_URL`: Base URL for API requests (default: `/api`)
-
-### Proxy Configuration
-
-The Vite config includes a proxy for API requests:
-
-```javascript
-// vite.config.ts
-server: {
-  proxy: {
-    '/api': {
-      target: 'http://localhost:8000',
-      changeOrigin: true,
-    }
-  }
-}
-```
-
-This allows the frontend to make requests to `/api/*` which are proxied to the backend during development.
-
-## TypeScript Types
-
-The project uses TypeScript for type safety. Main types are defined in `src/types/index.ts`:
-
-- `Player`: Player information
-- `Club`: Club information
-- `GraphNode`, `GraphEdge`: Graph visualization data
-- `ConnectionResponse`: Degrees of separation result
-- `VisualizationFilter`: Graph filtering options
-
-## API Client
-
-The `src/api/index.ts` file provides a centralized API client with:
-
-- Axios instance with error handling
-- Dedicated modules for each API endpoint group
-- Type-safe response handling
-- Error interception and logging
+| Technology | Purpose |
+|------------|---------|
+| **React 18** | UI framework |
+| **TypeScript** | Type safety |
+| **Vite** | Build tool and dev server |
+| **D3.js** | Graph visualization |
+| **react-force-graph-2d** | Simplified D3.js graph rendering |
+| **Tailwind CSS** | Styling |
+| **axios** | HTTP client |
+| **React Router** | Client-side routing |
 
 ## Styling
 
-- **Tailwind CSS**: Utility-first CSS framework
-- **Custom styles**: Additional styles in `src/styles/global.css`
-- **Responsive design**: Mobile-first approach with responsive breakpoints
+The project uses Tailwind CSS for utility-first styling. Custom styles are added in `src/styles/global.css`.
 
-## Dependencies
+### Color Scheme
 
-- **React 18**: UI library
-- **TypeScript**: Type system
-- **Vite**: Build tool
-- **react-force-graph-2d**: Graph visualization
-- **D3.js**: Graph utilities
-- **axios**: HTTP client
-- **Tailwind CSS**: Styling
-- **react-router-dom**: Routing
+- **Primary**: Blue (#3b82f6) for main actions and highlights
+- **Success**: Green (#22c55e) for positive states
+- **Warning**: Yellow (#f59e0b) for warnings
+- **Error**: Red (#ef4444) for errors
+- **Neutral**: Gray (#6b7280) for text and borders
+
+### Country Colors
+
+The visualization uses specific colors for major football nations:
+- Brazil: #1e40af (blue)
+- France: #0055a4 (blue)
+- Portugal: #006600 (green)
+- Spain: #c8102e (red)
+- England: #032b5f (navy)
+- Germany: #000000 (black)
+- And more...
+
+## Performance
+
+- **Bundle size**: Optimized with Vite
+- **Lazy loading**: Components are code-split for faster loading
+- **Graph rendering**: Canvas-based for smooth 60fps performance
+- **Data fetching**: Efficient API calls with caching
+
+## Testing
+
+Currently, the frontend doesn't have unit tests, but you can:
+
+1. **Manual testing**: Run the dev server and test all features
+2. **Integration testing**: Verify API endpoints work with the backend
+3. **Visual testing**: Check that the graph renders correctly
+
+## Deployment
+
+### Vercel
+
+The project is configured for deployment to Vercel:
+
+```bash
+# Install Vercel CLI
+npm install -g vercel
+
+# Deploy
+vercel
+```
+
+### Static Hosting
+
+For static hosting, build the frontend and deploy the `dist` directory:
+
+```bash
+pnpm build
+# Deploy the dist/ directory to any static hosting service
+```
+
+## Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `VITE_API_URL` | Backend API base URL | `/api` |
+
+## Browser Support
+
+- Chrome (latest)
+- Firefox (latest)
+- Safari (latest)
+- Edge (latest)
+
+## Troubleshooting
+
+### Common Issues
+
+1. **API not reachable**: Ensure the backend is running and CORS is configured
+2. **Graph not rendering**: Check that the API returns valid data
+3. **Styling issues**: Ensure Tailwind CSS is properly configured
+4. **Type errors**: Run `tsc --noEmit` to check for TypeScript errors
+
+### Debug Mode
+
+Run the development server with debug logging:
+
+```bash
+pnpm dev --debug
+```
 
 ## License
 
